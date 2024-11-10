@@ -25,7 +25,6 @@ function WeatherApp() {
     const [forecastType, setForecastType] = useState('temperature'); // Default forecast type
     const [suggestion, setSuggestion] = useState('');
 
-    // Get Day or Night based on Time Zone
     const getDayOrNight = (timeZone) => {
         const date = new Date();
         const localTime = new Date(date.toLocaleString('en-US', { timeZone }));
@@ -33,9 +32,8 @@ function WeatherApp() {
         return hour >= 6 && hour < 18 ? 'day' : 'night';
     };
 
-    // Fetch background image based on weather condition
     const getBackgroundImage = async (condition, timeOfDay) => {
-        const apiKey = process.env.REACT_APP_UNSPLASH_API_KEY; // Use environment variable for API key
+        const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0';
         let query = `${condition} ${timeOfDay}`;
         try {
             const response = await axios.get('https://api.unsplash.com/search/photos', {
@@ -48,11 +46,10 @@ function WeatherApp() {
         }
     };
 
-    // Fetch hourly forecast data
     const fetchHourlyForecast = async (city, selectedForecastType = forecastType) => {
-        const apiKey = process.env.REACT_APP_WEATHER_API_KEY; // Use environment variable for API key
+        const apiKey = '73df865263c04ad286852023241209';
         try {
-            const response = await axios.get('https://api.weatherapi.com/v1/forecast.json', {
+            const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
                 params: { key: apiKey, q: city, hours: 24 }
             });
             const hourlyData = response.data.forecast.forecastday[0].hour;
@@ -96,7 +93,6 @@ function WeatherApp() {
         }
     };
 
-    // Get suggestions based on weather condition
     const getSuggestions = (condition) => {
         const lowerCondition = condition.toLowerCase();
         
@@ -123,12 +119,11 @@ function WeatherApp() {
         }
     };
 
-    // Fetch weather data for the city
     const fetchWeather = async (city) => {
         setWeather({ loading: true, data: {}, error: false });
-        const apiKey = process.env.REACT_APP_WEATHER_API_KEY; // Use environment variable for API key
+        const apiKey = '73df865263c04ad286852023241209';
         try {
-            const response = await axios.get('https://api.weatherapi.com/v1/current.json', {
+            const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
                 params: { key: apiKey, q: city }
             });
             const { current, location } = response.data;
@@ -146,19 +141,16 @@ function WeatherApp() {
         }
     };
 
-    // useEffect hook to trigger fetchWeather on city input change
     useEffect(() => {
         if (input) {
             fetchWeather(input);
         }
     }, [input]);
 
-    // Handle city input change
     const handleSearchChange = (event) => {
         setInput(event.target.value);
     };
 
-    // Handle form submission for city search
     const handleSearchSubmit = (event) => {
         event.preventDefault();
         if (input.trim()) {
@@ -166,7 +158,6 @@ function WeatherApp() {
         }
     };
 
-    // Handle forecast type change (temperature, humidity, etc.)
     const handleForecastChange = (event) => {
         setForecastType(event.target.value);
         if (weather.data.location) {
@@ -174,7 +165,6 @@ function WeatherApp() {
         }
     };
 
-    // Get current date for display
     const currentDate = weather.data.location
         ? new Date(weather.data.location.localtime).toLocaleDateString()
         : '';
@@ -212,30 +202,45 @@ function WeatherApp() {
                     <h2>Weather in {weather.data.location.name} on {currentDate}</h2>
                     <div className="current-weather">
                         <h3>Condition: {weather.data.current.condition.text}</h3>
-                        <div className="temperature">
-                            <span>Temperature: {weather.data.current.temp_c}°C</span>
-                        </div>
+                        <div className="temp">{weather.data.current.temp_c}°C</div>
+                        <h4>Feels like: {weather.data.current.feelslike_c}°C</h4>
+                        <h4>Humidity: {weather.data.current.humidity}%</h4>
+                        <h4>Pressure: {weather.data.current.pressure_mb} mb</h4>
                     </div>
-                    <div className="forecast-options">
-                        <select onChange={handleForecastChange} value={forecastType}>
+                    <div className="forecast-dropdown">
+                        <label htmlFor="forecastType">Select forecast type: </label>
+                        <select id="forecastType" value={forecastType} onChange={handleForecastChange}>
                             <option value="temperature">Temperature</option>
                             <option value="humidity">Humidity</option>
                             <option value="pressure">Pressure</option>
                             <option value="precipitation">Precipitation</option>
                         </select>
                     </div>
+                    {chartData && (
+                        <div className="chart-container">
+                            <Line
+                                data={chartData}
+                                options={{
+                                    responsive: true,
+                                    plugins: {
+                                        legend: {
+                                            display: true,
+                                            position: 'top'
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: `${forecastType.charAt(0).toUpperCase() + forecastType.slice(1)} Forecast`
+                                        }
+                                    }
+                                }}
+                            />
+                        </div>
+                    )}
                     <div className="suggestion">
                         <p>{suggestion}</p>
                     </div>
-
-                    {chartData && (
-                        <div className="chart">
-                            <Line data={chartData} options={{ responsive: true }} />
-                        </div>
-                    )}
                 </div>
             )}
-
             <Chatbot />
         </div>
     );
