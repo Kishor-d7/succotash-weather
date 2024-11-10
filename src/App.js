@@ -12,6 +12,7 @@ import {
 import React, { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Oval } from 'react-loader-spinner';
+import { useCallback } from 'react'; 
 import './App.css';
 import Chatbot from './Chatbot';
 
@@ -119,33 +120,35 @@ function WeatherApp() {
         }
     };
 
-    const fetchWeather = async (city) => {
-        setWeather({ loading: true, data: {}, error: false });
-        const apiKey = '73df865263c04ad286852023241209';
-        try {
-            const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
-                params: { key: apiKey, q: city }
-            });
-            const { current, location } = response.data;
-            const condition = current.condition.text;
-            const timeOfDay = getDayOrNight(location.tz_id);
-            const image = await getBackgroundImage(condition, timeOfDay);
+    import { useCallback } from 'react'; // Import useCallback
 
-            setBackground(image);
-            setWeather({ loading: false, data: response.data, error: false });
-            fetchHourlyForecast(city);
-            setSuggestion(getSuggestions(condition));
-        } catch (error) {
-            console.error('Error fetching weather data:', error);
-            setWeather({ loading: false, data: {}, error: true });
-        }
-    };
+const fetchWeather = useCallback(async (city) => {
+    setWeather({ loading: true, data: {}, error: false });
+    const apiKey = '73df865263c04ad286852023241209';
+    try {
+        const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
+            params: { key: apiKey, q: city }
+        });
+        const { current, location } = response.data;
+        const condition = current.condition.text;
+        const timeOfDay = getDayOrNight(location.tz_id);
+        const image = await getBackgroundImage(condition, timeOfDay);
 
-    useEffect(() => {
-        if (input) {
-            fetchWeather(input);
-        }
-    }, [input]);
+        setBackground(image);
+        setWeather({ loading: false, data: response.data, error: false });
+        fetchHourlyForecast(city);
+        setSuggestion(getSuggestions(condition));
+    } catch (error) {
+        console.error('Error fetching weather data:', error);
+        setWeather({ loading: false, data: {}, error: true });
+    }
+}, []); // Empty dependency array ensures that fetchWeather doesn't change
+   useEffect(() => {
+    if (input) {
+        fetchWeather(input);
+    }
+}, [input, fetchWeather]);  // Add fetchWeather to the dependency array
+
 
     const handleSearchChange = (event) => {
         setInput(event.target.value);
