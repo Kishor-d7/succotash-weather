@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/succotash-weather/static/css/main.1eb5020a.css",
-    "main.js": "/succotash-weather/static/js/main.847e6e91.js",
+    "main.css": "/succotash-weather/static/css/main.b30c8322.css",
+    "main.js": "/succotash-weather/static/js/main.527fe60d.js",
     "static/js/453.419a5d54.chunk.js": "/succotash-weather/static/js/453.419a5d54.chunk.js",
     "index.html": "/succotash-weather/index.html",
-    "main.1eb5020a.css.map": "/succotash-weather/static/css/main.1eb5020a.css.map",
-    "main.847e6e91.js.map": "/succotash-weather/static/js/main.847e6e91.js.map",
+    "main.b30c8322.css.map": "/succotash-weather/static/css/main.b30c8322.css.map",
+    "main.527fe60d.js.map": "/succotash-weather/static/js/main.527fe60d.js.map",
     "453.419a5d54.chunk.js.map": "/succotash-weather/static/js/453.419a5d54.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.1eb5020a.css",
-    "static/js/main.847e6e91.js"
+    "static/css/main.b30c8322.css",
+    "static/js/main.527fe60d.js"
   ]
 }
