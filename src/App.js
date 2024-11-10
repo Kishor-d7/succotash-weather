@@ -25,73 +25,96 @@ function WeatherApp() {
     const [forecastType, setForecastType] = useState('temperature'); // Default forecast type
     const [suggestion, setSuggestion] = useState('');
 
-    const getDayOrNight = (timeZone) => {
-        const date = new Date();
-        const localTime = new Date(date.toLocaleString('en-US', { timeZone }));
-        const hour = localTime.getHours();
-        return hour >= 6 && hour < 18 ? 'day' : 'night';
-    };
+    // Move functions inside the useCallback or useCallback them to avoid re-creation on every render.
+    const fetchWeather = useCallback(async (city) => {
+        const getDayOrNight = () => {
+            const date = new Date();
+            const localTime = new Date(date.toLocaleString('en-US', { timeZone: city }));
+            const hour = localTime.getHours();
+            return hour >= 6 && hour < 18 ? 'day' : 'night';
+        };
 
-    const getBackgroundImage = async (condition, timeOfDay) => {
-        const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0';
-        let query = `${condition} ${timeOfDay}`;
-        try {
-            const response = await axios.get('https://api.unsplash.com/search/photos', {
-                params: { query, client_id: apiKey, per_page: 1 }
-            });
-            return response.data.results[0]?.urls?.regular || '/default-background.jpg';
-        } catch (error) {
-            console.error('Error fetching background image:', error);
-            return '/default-background.jpg';
-        }
-    };
+        const getBackgroundImage = async (condition, timeOfDay) => {
+            const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0';
+            let query = `${condition} ${timeOfDay}`;
+            try {
+                const response = await axios.get('https://api.unsplash.com/search/photos', {
+                    params: { query, client_id: apiKey, per_page: 1 }
+                });
+                return response.data.results[0]?.urls?.regular || '/default-background.jpg';
+            } catch (error) {
+                console.error('Error fetching background image:', error);
+                return '/default-background.jpg';
+            }
+        };
 
-    const fetchHourlyForecast = async (city, selectedForecastType = forecastType) => {
+        const fetchHourlyForecast = async (city, selectedForecastType = forecastType) => {
+            const apiKey = '73df865263c04ad286852023241209';
+            try {
+                const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
+                    params: { key: apiKey, q: city, hours: 24 }
+                });
+                const hourlyData = response.data.forecast.forecastday[0].hour;
+                const labels = hourlyData.map(hour =>
+                    new Date(hour.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                );
+
+                const datasets = {
+                    temperature: {
+                        label: 'Temperature (°C)',
+                        data: hourlyData.map(hour => hour.temp_c),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)'
+                    },
+                    humidity: {
+                        label: 'Humidity (%)',
+                        data: hourlyData.map(hour => hour.humidity),
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)'
+                    },
+                    pressure: {
+                        label: 'Pressure (mb)',
+                        data: hourlyData.map(hour => hour.pressure_mb),
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)'
+                    },
+                    precipitation: {
+                        label: 'Precipitation (mm)',
+                        data: hourlyData.map(hour => hour.precip_mm),
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)'
+                    }
+                };
+
+                setChartData({
+                    labels,
+                    datasets: [datasets[selectedForecastType]]
+                });
+            } catch (error) {
+                console.error('Error fetching hourly forecast:', error);
+            }
+        };
+
+        setWeather({ loading: true, data: {}, error: false });
         const apiKey = '73df865263c04ad286852023241209';
         try {
-            const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
-                params: { key: apiKey, q: city, hours: 24 }
+            const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
+                params: { key: apiKey, q: city }
             });
-            const hourlyData = response.data.forecast.forecastday[0].hour;
-            const labels = hourlyData.map(hour =>
-                new Date(hour.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            );
+            const { current, location } = response.data;
+            const condition = current.condition.text;
+            const timeOfDay = getDayOrNight(location.tz_id);
+            const image = await getBackgroundImage(condition, timeOfDay);
 
-            const datasets = {
-                temperature: {
-                    label: 'Temperature (°C)',
-                    data: hourlyData.map(hour => hour.temp_c),
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)'
-                },
-                humidity: {
-                    label: 'Humidity (%)',
-                    data: hourlyData.map(hour => hour.humidity),
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)'
-                },
-                pressure: {
-                    label: 'Pressure (mb)',
-                    data: hourlyData.map(hour => hour.pressure_mb),
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)'
-                },
-                precipitation: {
-                    label: 'Precipitation (mm)',
-                    data: hourlyData.map(hour => hour.precip_mm),
-                    borderColor: 'rgba(153, 102, 255, 1)',
-                    backgroundColor: 'rgba(153, 102, 255, 0.2)'
-                }
-            };
-
-            setChartData({
-                labels,
-                datasets: [datasets[selectedForecastType]]
-            });
+            setBackground(image);
+            setWeather({ loading: false, data: response.data, error: false });
+            fetchHourlyForecast(city);
+            setSuggestion(getSuggestions(condition));
         } catch (error) {
-            console.error('Error fetching hourly forecast:', error);
+            console.error('Error fetching weather data:', error);
+            setWeather({ loading: false, data: {}, error: true });
         }
-    };
+    }, [forecastType]);
 
     const getSuggestions = (condition) => {
         const lowerCondition = condition.toLowerCase();
@@ -118,28 +141,6 @@ function WeatherApp() {
             return 'Suggestions: Check the weather for specific tips.';
         }
     };
-
-    const fetchWeather = useCallback(async (city) => {
-        setWeather({ loading: true, data: {}, error: false });
-        const apiKey = '73df865263c04ad286852023241209';
-        try {
-            const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
-                params: { key: apiKey, q: city }
-            });
-            const { current, location } = response.data;
-            const condition = current.condition.text;
-            const timeOfDay = getDayOrNight(location.tz_id);
-            const image = await getBackgroundImage(condition, timeOfDay);
-
-            setBackground(image);
-            setWeather({ loading: false, data: response.data, error: false });
-            fetchHourlyForecast(city);
-            setSuggestion(getSuggestions(condition));
-        } catch (error) {
-            console.error('Error fetching weather data:', error);
-            setWeather({ loading: false, data: {}, error: true });
-        }
-    }, [fetchHourlyForecast, getBackgroundImage, getDayOrNight]);
 
     useEffect(() => {
         if (input) {
@@ -216,6 +217,7 @@ function WeatherApp() {
                             <option value="precipitation">Precipitation</option>
                         </select>
                     </div>
+
                     {chartData && (
                         <div className="chart-container">
                             <Line
@@ -223,10 +225,6 @@ function WeatherApp() {
                                 options={{
                                     responsive: true,
                                     plugins: {
-                                        legend: {
-                                            display: true,
-                                            position: 'top'
-                                        },
                                         title: {
                                             display: true,
                                             text: 'Hourly Forecast'
