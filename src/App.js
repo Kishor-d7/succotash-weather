@@ -25,6 +25,20 @@ const App = () => {
     return hour >= 6 && hour < 18 ? 'day' : 'night';
   }, []);
 
+  // Fetch hourly forecast
+  const fetchHourlyForecast = useCallback(async (city) => {
+    const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0'; // Your provided API key
+    try {
+      const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
+        params: { key: apiKey, q: city, hours: 24 }
+      });
+      const data = response.data;
+      setHourlyForecast(data.forecast.forecastday[0].hour);  // Assuming the first day has hourly data
+    } catch (error) {
+      console.error('Error fetching hourly forecast:', error);
+    }
+  }, []);
+
   // Fetch weather data for a city
   const fetchWeather = useCallback(async (city) => {
     const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0'; // Your provided API key
@@ -46,20 +60,6 @@ const App = () => {
       console.error('Error fetching weather:', error);
     }
   }, [forecastType, getBackgroundImage, fetchHourlyForecast]);
-
-  // Fetch hourly forecast
-  const fetchHourlyForecast = useCallback(async (city) => {
-    const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0'; // Your provided API key
-    try {
-      const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
-        params: { key: apiKey, q: city, hours: 24 }
-      });
-      const data = response.data;
-      setHourlyForecast(data.forecast.forecastday[0].hour);  // Assuming the first day has hourly data
-    } catch (error) {
-      console.error('Error fetching hourly forecast:', error);
-    }
-  }, []);
 
   // Fetch weather when the component mounts or when city changes
   useEffect(() => {
