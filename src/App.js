@@ -9,22 +9,21 @@ import {
     Title,
     Tooltip
 } from 'chart.js';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';  // Import useCallback
 import { Line } from 'react-chartjs-2';
 import { Oval } from 'react-loader-spinner';
 import './App.css';
 import Chatbot from './Chatbot';
 
-// Registering chart.js elements
 ChartJS.register(LineElement, CategoryScale, LinearScale, Title, Tooltip, Legend, PointElement);
 
 function WeatherApp() {
-    const [input, setInput] = useState('');  // User input for city
-    const [weather, setWeather] = useState({ loading: false, data: {}, error: false });  // Weather state
-    const [background, setBackground] = useState('');  // Background image URL
-    const [chartData, setChartData] = useState(null);  // Chart data
-    const [forecastType, setForecastType] = useState('temperature');  // Default forecast type
-    const [suggestion, setSuggestion] = useState('');  // Weather suggestion based on condition
+    const [input, setInput] = useState('');
+    const [weather, setWeather] = useState({ loading: false, data: {}, error: false });
+    const [background, setBackground] = useState('');
+    const [chartData, setChartData] = useState(null);
+    const [forecastType, setForecastType] = useState('temperature'); // Default forecast type
+    const [suggestion, setSuggestion] = useState('');
 
     const getDayOrNight = (timeZone) => {
         const date = new Date();
@@ -47,7 +46,7 @@ function WeatherApp() {
         }
     };
 
-    const fetchHourlyForecast = async (city, selectedForecastType = forecastType) => {
+    const fetchHourlyForecast = useCallback(async (city, selectedForecastType = forecastType) => {
         const apiKey = '73df865263c04ad286852023241209';
         try {
             const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
@@ -92,7 +91,7 @@ function WeatherApp() {
         } catch (error) {
             console.error('Error fetching hourly forecast:', error);
         }
-    };
+    }, [forecastType]);  // Add forecastType as a dependency
 
     const getSuggestions = (condition) => {
         const lowerCondition = condition.toLowerCase();
@@ -120,7 +119,7 @@ function WeatherApp() {
         }
     };
 
-    const fetchWeather = async (city) => {
+    const fetchWeather = useCallback(async (city) => {
         setWeather({ loading: true, data: {}, error: false });
         const apiKey = '73df865263c04ad286852023241209';
         try {
@@ -140,13 +139,13 @@ function WeatherApp() {
             console.error('Error fetching weather data:', error);
             setWeather({ loading: false, data: {}, error: true });
         }
-    };
+    }, [fetchHourlyForecast]);  // Add fetchHourlyForecast as a dependency
 
     useEffect(() => {
         if (input) {
             fetchWeather(input);
         }
-    }, [input,fetchWeather]);
+    }, [input, fetchWeather]);  // Add fetchWeather as a dependency
 
     const handleSearchChange = (event) => {
         setInput(event.target.value);
@@ -156,8 +155,6 @@ function WeatherApp() {
         event.preventDefault();
         if (input.trim()) {
             fetchWeather(input);
-        } else {
-            alert("Please enter a valid city name.");
         }
     };
 
@@ -212,11 +209,7 @@ function WeatherApp() {
                     </div>
                     <div className="forecast-dropdown">
                         <label htmlFor="forecastType">Select forecast type: </label>
-                        <select
-                            id="forecastType"
-                            value={forecastType}
-                            onChange={handleForecastChange}
-                        >
+                        <select id="forecastType" value={forecastType} onChange={handleForecastChange}>
                             <option value="temperature">Temperature</option>
                             <option value="humidity">Humidity</option>
                             <option value="pressure">Pressure</option>
@@ -225,18 +218,19 @@ function WeatherApp() {
                     </div>
 
                     {chartData && (
-                        <div className="chart">
-                            <Line data={chartData} />
+                        <div className="chart-container">
+                            <Line data={chartData} options={{ responsive: true }} />
                         </div>
                     )}
 
                     <div className="suggestions">
+                        <h4>Suggestions:</h4>
                         <p>{suggestion}</p>
                     </div>
-
-                    <Chatbot />
                 </div>
             )}
+
+            <Chatbot />
         </div>
     );
 }
