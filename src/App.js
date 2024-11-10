@@ -12,7 +12,6 @@ import {
 import React, { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Oval } from 'react-loader-spinner';
-import { useCallback } from 'react'; 
 import './App.css';
 import Chatbot from './Chatbot';
 
@@ -23,8 +22,12 @@ function WeatherApp() {
     const [weather, setWeather] = useState({ loading: false, data: {}, error: false });
     const [background, setBackground] = useState('');
     const [chartData, setChartData] = useState(null);
-    const [forecastType, setForecastType] = useState('temperature'); // Default forecast type
+    const [forecastType, setForecastType] = useState('temperature');
     const [suggestion, setSuggestion] = useState('');
+
+    // Load environment variables for API keys
+    const UNSPLASH_API_KEY = process.env.REACT_APP_UNSPLASH_API_KEY;
+    const WEATHER_API_KEY = process.env.REACT_APP_WEATHER_API_KEY;
 
     const getDayOrNight = (timeZone) => {
         const date = new Date();
@@ -34,11 +37,10 @@ function WeatherApp() {
     };
 
     const getBackgroundImage = async (condition, timeOfDay) => {
-        const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0';
         let query = `${condition} ${timeOfDay}`;
         try {
             const response = await axios.get('https://api.unsplash.com/search/photos', {
-                params: { query, client_id: apiKey, per_page: 1 }
+                params: { query, client_id: UNSPLASH_API_KEY, per_page: 1 }
             });
             return response.data.results[0]?.urls?.regular || '/default-background.jpg';
         } catch (error) {
@@ -48,10 +50,9 @@ function WeatherApp() {
     };
 
     const fetchHourlyForecast = async (city, selectedForecastType = forecastType) => {
-        const apiKey = '73df865263c04ad286852023241209';
         try {
             const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
-                params: { key: apiKey, q: city, hours: 24 }
+                params: { key: WEATHER_API_KEY, q: city, hours: 24 }
             });
             const hourlyData = response.data.forecast.forecastday[0].hour;
             const labels = hourlyData.map(hour =>
@@ -120,35 +121,32 @@ function WeatherApp() {
         }
     };
 
-   
+    const fetchWeather = async (city) => {
+        setWeather({ loading: true, data: {}, error: false });
+        try {
+            const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
+                params: { key: WEATHER_API_KEY, q: city }
+            });
+            const { current, location } = response.data;
+            const condition = current.condition.text;
+            const timeOfDay = getDayOrNight(location.tz_id);
+            const image = await getBackgroundImage(condition, timeOfDay);
 
-const fetchWeather = useCallback(async (city) => {
-    setWeather({ loading: true, data: {}, error: false });
-    const apiKey = '73df865263c04ad286852023241209';
-    try {
-        const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
-            params: { key: apiKey, q: city }
-        });
-        const { current, location } = response.data;
-        const condition = current.condition.text;
-        const timeOfDay = getDayOrNight(location.tz_id);
-        const image = await getBackgroundImage(condition, timeOfDay);
+            setBackground(image);
+            setWeather({ loading: false, data: response.data, error: false });
+            fetchHourlyForecast(city);
+            setSuggestion(getSuggestions(condition));
+        } catch (error) {
+            console.error('Error fetching weather data:', error);
+            setWeather({ loading: false, data: {}, error: true });
+        }
+    };
 
-        setBackground(image);
-        setWeather({ loading: false, data: response.data, error: false });
-        fetchHourlyForecast(city);
-        setSuggestion(getSuggestions(condition));
-    } catch (error) {
-        console.error('Error fetching weather data:', error);
-        setWeather({ loading: false, data: {}, error: true });
-    }
-}, []); // Empty dependency array ensures that fetchWeather doesn't change
-   useEffect(() => {
-    if (input) {
-        fetchWeather(input);
-    }
-}, [input, fetchWeather]);  // Add fetchWeather to the dependency array
-
+    useEffect(() => {
+        if (input) {
+            fetchWeather(input);
+        }
+    }, [input]);
 
     const handleSearchChange = (event) => {
         setInput(event.target.value);
@@ -220,28 +218,11 @@ const fetchWeather = useCallback(async (city) => {
                         </select>
                     </div>
                     {chartData && (
-                        <div className="chart-container">
-                            <Line
-                                data={chartData}
-                                options={{
-                                    responsive: true,
-                                    plugins: {
-                                        legend: {
-                                            display: true,
-                                            position: 'top'
-                                        },
-                                        title: {
-                                            display: true,
-                                            text: `${forecastType.charAt(0).toUpperCase() + forecastType.slice(1)} Forecast`
-                                        }
-                                    }
-                                }}
-                            />
+                        <div className="chart">
+                            <Line data={chartData} />
                         </div>
                     )}
-                    <div className="suggestion">
-                        <p>{suggestion}</p>
-                    </div>
+                    <div className="suggestions">{suggestion}</div>
                 </div>
             )}
             <Chatbot />
