@@ -9,7 +9,7 @@ import {
     Title,
     Tooltip
 } from 'chart.js';
-import React, { useEffect, useState, useCallback } from 'react';  // Import useCallback
+import React, { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Oval } from 'react-loader-spinner';
 import './App.css';
@@ -24,6 +24,7 @@ function WeatherApp() {
     const [chartData, setChartData] = useState(null);
     const [forecastType, setForecastType] = useState('temperature'); // Default forecast type
     const [suggestion, setSuggestion] = useState('');
+    const [errorMessage, setErrorMessage] = useState(''); // To handle error messages
 
     const getDayOrNight = (timeZone) => {
         const date = new Date();
@@ -46,7 +47,7 @@ function WeatherApp() {
         }
     };
 
-    const fetchHourlyForecast = useCallback(async (city, selectedForecastType = forecastType) => {
+    const fetchHourlyForecast = async (city, selectedForecastType = forecastType) => {
         const apiKey = '73df865263c04ad286852023241209';
         try {
             const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
@@ -90,12 +91,13 @@ function WeatherApp() {
             });
         } catch (error) {
             console.error('Error fetching hourly forecast:', error);
+            setErrorMessage('Unable to fetch hourly forecast data.');
         }
-    }, [forecastType]);  // Add forecastType as a dependency
+    };
 
     const getSuggestions = (condition) => {
         const lowerCondition = condition.toLowerCase();
-        
+
         if (lowerCondition.includes('sunny')) {
             return 'Suggestions: Stay hydrated and wear sunscreen!';
         } else if (lowerCondition.includes('rain')) {
@@ -119,8 +121,9 @@ function WeatherApp() {
         }
     };
 
-    const fetchWeather = useCallback(async (city) => {
+    const fetchWeather = async (city) => {
         setWeather({ loading: true, data: {}, error: false });
+        setErrorMessage(''); // Clear any previous error message
         const apiKey = '73df865263c04ad286852023241209';
         try {
             const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
@@ -138,14 +141,15 @@ function WeatherApp() {
         } catch (error) {
             console.error('Error fetching weather data:', error);
             setWeather({ loading: false, data: {}, error: true });
+            setErrorMessage('City not found. Please try again.');
         }
-    }, [fetchHourlyForecast]);  // Add fetchHourlyForecast as a dependency
+    };
 
     useEffect(() => {
         if (input) {
             fetchWeather(input);
         }
-    }, [input, fetchWeather]);  // Add fetchWeather as a dependency
+    }, [input]);
 
     const handleSearchChange = (event) => {
         setInput(event.target.value);
@@ -193,8 +197,8 @@ function WeatherApp() {
                 </div>
             )}
 
-            {weather.error && (
-                <div className="error-message">City not found. Please try again.</div>
+            {errorMessage && (
+                <div className="error-message">{errorMessage}</div>
             )}
 
             {!weather.loading && weather.data.current && (
@@ -216,20 +220,25 @@ function WeatherApp() {
                             <option value="precipitation">Precipitation</option>
                         </select>
                     </div>
-
                     {chartData && (
-                        <div className="chart-container">
-                            <Line data={chartData} options={{ responsive: true }} />
-                        </div>
+                        <Line
+                            data={chartData}
+                            options={{
+                                responsive: true,
+                                plugins: {
+                                    title: { display: true, text: '24-hour Weather Forecast' },
+                                    tooltip: { mode: 'nearest', intersect: false }
+                                },
+                                scales: {
+                                    x: { title: { display: true, text: 'Time of Day' } },
+                                    y: { title: { display: true, text: forecastType.charAt(0).toUpperCase() + forecastType.slice(1) } }
+                                }
+                            }}
+                        />
                     )}
-
-                    <div className="suggestions">
-                        <h4>Suggestions:</h4>
-                        <p>{suggestion}</p>
-                    </div>
+                    <div className="suggestion">{suggestion}</div>
                 </div>
             )}
-
             <Chatbot />
         </div>
     );
