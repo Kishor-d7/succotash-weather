@@ -120,7 +120,7 @@ function WeatherApp() {
         }
     };
 
-    import { useCallback } from 'react'; // Import useCallback
+   
 
 const fetchWeather = useCallback(async (city) => {
     setWeather({ loading: true, data: {}, error: false });
