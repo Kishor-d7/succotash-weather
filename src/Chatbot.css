@@ -1,0 +1,85 @@
+/* Chatbot container */
+.chatbot-container {
+    position: fixed; /* Keeps the chatbot fixed to the viewport */
+    bottom: 20px; /* Distance from the bottom */
+    right: 20px; /* Distance from the right */
+    width: 100%;
+    max-width: 400px; /* Adjust width as needed */
+    display: flex;
+    flex-direction: column;
+    background-color: #f5f5f5;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000; /* Ensure it stays on top of other content */
+  }
+  
+  /* Chat window */
+  .chat-window {
+    width: 100%;
+    height: 400px; /* Adjust height as needed */
+    border: none; /* Remove border */
+    border-radius: 10px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Messages area */
+  .messages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+  }
+  
+  /* Individual message */
+  .message {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  
+  /* User message */
+  .message.user {
+    background-color: #e1ffc7;
+    align-self: flex-end;
+  }
+  
+  /* Bot message */
+  .message.bot {
+    background-color: #f1f1f1;
+    align-self: flex-start;
+  }
+  
+  /* Input container */
+  .input-container {
+    display: flex;
+    border-top: 1px solid #ddd;
+    padding: 10px;
+    background: #fff;
+  }
+  
+  /* Input field */
+  .input-container input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+  }
+  
+  /* Send button */
+  .input-container button {
+    padding: 10px 15px;
+    margin-left: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #3399ff;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .input-container button:hover {
+    background-color: #2878d3;
+  }
+  
