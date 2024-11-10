@@ -146,7 +146,7 @@ function WeatherApp() {
         if (input) {
             fetchWeather(input);
         }
-    }, [input]);
+    }, [input,fetchWeather]);
 
     const handleSearchChange = (event) => {
         setInput(event.target.value);
