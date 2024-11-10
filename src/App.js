@@ -1,248 +1,108 @@
+import React, { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
-import {
-    CategoryScale,
-    Chart as ChartJS,
-    Legend,
-    LinearScale,
-    LineElement,
-    PointElement,
-    Title,
-    Tooltip
-} from 'chart.js';
-import React, { useState, useEffect, useCallback } from 'react';
-import { Line } from 'react-chartjs-2';
-import { Oval } from 'react-loader-spinner';
-import './App.css';
-import Chatbot from './Chatbot';
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, Title, Tooltip, Legend, PointElement);
+const App = () => {
+  const [city, setCity] = useState('New York');
+  const [forecastType, setForecastType] = useState('daily'); // 'daily' or 'hourly'
+  const [weatherData, setWeatherData] = useState(null);
+  const [hourlyForecast, setHourlyForecast] = useState(null);
+  const [backgroundImage, setBackgroundImage] = useState('');
 
-function WeatherApp() {
-    const [input, setInput] = useState('');
-    const [weather, setWeather] = useState({ loading: false, data: {}, error: false });
-    const [background, setBackground] = useState('');
-    const [chartData, setChartData] = useState(null);
-    const [forecastType, setForecastType] = useState('temperature'); // Default forecast type
-    const [suggestion, setSuggestion] = useState('');
+  // Get background image based on the weather
+  const getBackgroundImage = useCallback((condition) => {
+    if (condition.includes('rain')) {
+      return 'rainy.jpg';  // Use your image paths here
+    } else if (condition.includes('clear')) {
+      return 'sunny.jpg';
+    } else {
+      return 'cloudy.jpg';
+    }
+  }, []);
 
-    // Move functions inside the useCallback or useCallback them to avoid re-creation on every render.
-    const fetchWeather = useCallback(async (city) => {
-        const getDayOrNight = () => {
-            const date = new Date();
-            const localTime = new Date(date.toLocaleString('en-US', { timeZone: city }));
-            const hour = localTime.getHours();
-            return hour >= 6 && hour < 18 ? 'day' : 'night';
-        };
+  // Get day or night based on the time of day
+  const getDayOrNight = useCallback((time) => {
+    const hour = new Date(time).getHours();
+    return hour >= 6 && hour < 18 ? 'day' : 'night';
+  }, []);
 
-        const getBackgroundImage = async (condition, timeOfDay) => {
-            const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0';
-            let query = `${condition} ${timeOfDay}`;
-            try {
-                const response = await axios.get('https://api.unsplash.com/search/photos', {
-                    params: { query, client_id: apiKey, per_page: 1 }
-                });
-                return response.data.results[0]?.urls?.regular || '/default-background.jpg';
-            } catch (error) {
-                console.error('Error fetching background image:', error);
-                return '/default-background.jpg';
-            }
-        };
+  // Fetch weather data for a city
+  const fetchWeather = useCallback(async (city) => {
+    const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0'; // Your provided API key
+    try {
+      const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
+        params: { key: apiKey, q: city, days: 1 }
+      });
+      const data = response.data;
+      setWeatherData(data);
 
-        const fetchHourlyForecast = async (city, selectedForecastType = forecastType) => {
-            const apiKey = '73df865263c04ad286852023241209';
-            try {
-                const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
-                    params: { key: apiKey, q: city, hours: 24 }
-                });
-                const hourlyData = response.data.forecast.forecastday[0].hour;
-                const labels = hourlyData.map(hour =>
-                    new Date(hour.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                );
+      const condition = data.current.condition.text.toLowerCase();
+      setBackgroundImage(getBackgroundImage(condition));
 
-                const datasets = {
-                    temperature: {
-                        label: 'Temperature (°C)',
-                        data: hourlyData.map(hour => hour.temp_c),
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)'
-                    },
-                    humidity: {
-                        label: 'Humidity (%)',
-                        data: hourlyData.map(hour => hour.humidity),
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)'
-                    },
-                    pressure: {
-                        label: 'Pressure (mb)',
-                        data: hourlyData.map(hour => hour.pressure_mb),
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)'
-                    },
-                    precipitation: {
-                        label: 'Precipitation (mm)',
-                        data: hourlyData.map(hour => hour.precip_mm),
-                        borderColor: 'rgba(153, 102, 255, 1)',
-                        backgroundColor: 'rgba(153, 102, 255, 0.2)'
-                    }
-                };
+      // If the forecast type is hourly, fetch hourly data
+      if (forecastType === 'hourly') {
+        fetchHourlyForecast(city);
+      }
+    } catch (error) {
+      console.error('Error fetching weather:', error);
+    }
+  }, [forecastType, getBackgroundImage, fetchHourlyForecast]);
 
-                setChartData({
-                    labels,
-                    datasets: [datasets[selectedForecastType]]
-                });
-            } catch (error) {
-                console.error('Error fetching hourly forecast:', error);
-            }
-        };
+  // Fetch hourly forecast
+  const fetchHourlyForecast = useCallback(async (city) => {
+    const apiKey = 'BfwFT-hjeWonPODEFKd3sghjrGsTcAcVwijCdIVef_0'; // Your provided API key
+    try {
+      const response = await axios.get('http://api.weatherapi.com/v1/forecast.json', {
+        params: { key: apiKey, q: city, hours: 24 }
+      });
+      const data = response.data;
+      setHourlyForecast(data.forecast.forecastday[0].hour);  // Assuming the first day has hourly data
+    } catch (error) {
+      console.error('Error fetching hourly forecast:', error);
+    }
+  }, []);
 
-        setWeather({ loading: true, data: {}, error: false });
-        const apiKey = '73df865263c04ad286852023241209';
-        try {
-            const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
-                params: { key: apiKey, q: city }
-            });
-            const { current, location } = response.data;
-            const condition = current.condition.text;
-            const timeOfDay = getDayOrNight(location.tz_id);
-            const image = await getBackgroundImage(condition, timeOfDay);
+  // Fetch weather when the component mounts or when city changes
+  useEffect(() => {
+    fetchWeather(city);
+  }, [city, forecastType, fetchWeather]);
 
-            setBackground(image);
-            setWeather({ loading: false, data: response.data, error: false });
-            fetchHourlyForecast(city);
-            setSuggestion(getSuggestions(condition));
-        } catch (error) {
-            console.error('Error fetching weather data:', error);
-            setWeather({ loading: false, data: {}, error: true });
-        }
-    }, [forecastType]);
+  return (
+    <div style={{ backgroundImage: `url(${backgroundImage})` }}>
+      <h1>Weather App</h1>
+      <input 
+        type="text" 
+        value={city} 
+        onChange={(e) => setCity(e.target.value)} 
+        placeholder="Enter city" 
+      />
+      <div>
+        <button onClick={() => setForecastType('daily')}>Daily</button>
+        <button onClick={() => setForecastType('hourly')}>Hourly</button>
+      </div>
 
-    const getSuggestions = (condition) => {
-        const lowerCondition = condition.toLowerCase();
-        
-        if (lowerCondition.includes('sunny')) {
-            return 'Suggestions: Stay hydrated and wear sunscreen!';
-        } else if (lowerCondition.includes('rain')) {
-            return 'Suggestions: Carry an umbrella and wear waterproof clothing.';
-        } else if (lowerCondition.includes('snow')) {
-            return 'Suggestions: Dress warmly and avoid travel if possible.';
-        } else if (lowerCondition.includes('cloudy')) {
-            return 'Suggestions: A light jacket should be enough.';
-        } else if (lowerCondition.includes('fog')) {
-            return 'Suggestions: Drive carefully and use fog lights if driving.';
-        } else if (lowerCondition.includes('storm')) {
-            return 'Suggestions: Stay indoors and avoid open areas!';
-        } else if (lowerCondition.includes('windy')) {
-            return 'Suggestions: Secure loose items and be cautious while driving.';
-        } else if (lowerCondition.includes('overcast')) {
-            return 'Suggestions: It might feel a bit cooler, so wear layers.';
-        } else if (lowerCondition.includes('drizzle')) {
-            return 'Suggestions: A light umbrella should suffice.';
-        } else {
-            return 'Suggestions: Check the weather for specific tips.';
-        }
-    };
-
-    useEffect(() => {
-        if (input) {
-            fetchWeather(input);
-        }
-    }, [input, fetchWeather]);
-
-    const handleSearchChange = (event) => {
-        setInput(event.target.value);
-    };
-
-    const handleSearchSubmit = (event) => {
-        event.preventDefault();
-        if (input.trim()) {
-            fetchWeather(input);
-        }
-    };
-
-    const handleForecastChange = (event) => {
-        setForecastType(event.target.value);
-        if (weather.data.location) {
-            fetchHourlyForecast(weather.data.location.name, event.target.value);
-        }
-    };
-
-    const currentDate = weather.data.location
-        ? new Date(weather.data.location.localtime).toLocaleDateString()
-        : '';
-
-    return (
-        <div className="App" style={{ backgroundImage: `url(${background})` }}>
-            <div className="header">
-                <h1 className="title">Weather Forecast</h1>
-            </div>
-
-            <div className="search-bar">
-                <form onSubmit={handleSearchSubmit}>
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={handleSearchChange}
-                        placeholder="Enter city"
-                        className="city-search"
-                    />
-                </form>
-            </div>
-
-            {weather.loading && (
-                <div className="loader">
-                    <Oval color="#007bff" height={80} width={80} />
-                </div>
-            )}
-
-            {weather.error && (
-                <div className="error-message">City not found. Please try again.</div>
-            )}
-
-            {!weather.loading && weather.data.current && (
-                <div className="weather-info">
-                    <h2>Weather in {weather.data.location.name} on {currentDate}</h2>
-                    <div className="current-weather">
-                        <h3>Condition: {weather.data.current.condition.text}</h3>
-                        <div className="temp">{weather.data.current.temp_c}°C</div>
-                        <h4>Feels like: {weather.data.current.feelslike_c}°C</h4>
-                        <h4>Humidity: {weather.data.current.humidity}%</h4>
-                        <h4>Pressure: {weather.data.current.pressure_mb} mb</h4>
-                    </div>
-                    <div className="forecast-dropdown">
-                        <label htmlFor="forecastType">Select forecast type: </label>
-                        <select id="forecastType" value={forecastType} onChange={handleForecastChange}>
-                            <option value="temperature">Temperature</option>
-                            <option value="humidity">Humidity</option>
-                            <option value="pressure">Pressure</option>
-                            <option value="precipitation">Precipitation</option>
-                        </select>
-                    </div>
-
-                    {chartData && (
-                        <div className="chart-container">
-                            <Line
-                                data={chartData}
-                                options={{
-                                    responsive: true,
-                                    plugins: {
-                                        title: {
-                                            display: true,
-                                            text: 'Hourly Forecast'
-                                        }
-                                    }
-                                }}
-                            />
-                        </div>
-                    )}
-                    <div className="suggestion">
-                        <h4>{suggestion}</h4>
-                    </div>
-                </div>
-            )}
-
-            <Chatbot />
+      {weatherData && (
+        <div>
+          <h2>{weatherData.location.name}</h2>
+          <p>{weatherData.current.temp_c}°C</p>
+          <p>{weatherData.current.condition.text}</p>
+          <p>{getDayOrNight(weatherData.location.localtime)}</p>
         </div>
-    );
-}
+      )}
 
-export default WeatherApp;
+      {forecastType === 'hourly' && hourlyForecast && (
+        <div>
+          <h3>Hourly Forecast</h3>
+          {hourlyForecast.map((hour, index) => (
+            <div key={index}>
+              <p>{new Date(hour.time).toLocaleTimeString()}</p>
+              <p>{hour.temp_c}°C</p>
+              <p>{hour.condition.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
