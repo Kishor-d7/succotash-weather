@@ -9,7 +9,7 @@ import {
     Title,
     Tooltip
 } from 'chart.js';
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Oval } from 'react-loader-spinner';
 import './App.css';
@@ -119,7 +119,7 @@ function WeatherApp() {
         }
     };
 
-    const fetchWeather = async (city) => {
+    const fetchWeather = useCallback(async (city) => {
         setWeather({ loading: true, data: {}, error: false });
         const apiKey = '73df865263c04ad286852023241209';
         try {
@@ -139,13 +139,13 @@ function WeatherApp() {
             console.error('Error fetching weather data:', error);
             setWeather({ loading: false, data: {}, error: true });
         }
-    };
+    }, [fetchHourlyForecast, getBackgroundImage, getDayOrNight]);
 
     useEffect(() => {
         if (input) {
             fetchWeather(input);
         }
-    }, [input]);
+    }, [input, fetchWeather]);
 
     const handleSearchChange = (event) => {
         setInput(event.target.value);
@@ -229,7 +229,7 @@ function WeatherApp() {
                                         },
                                         title: {
                                             display: true,
-                                            text: `${forecastType.charAt(0).toUpperCase() + forecastType.slice(1)} Forecast`
+                                            text: 'Hourly Forecast'
                                         }
                                     }
                                 }}
@@ -237,10 +237,11 @@ function WeatherApp() {
                         </div>
                     )}
                     <div className="suggestion">
-                        <p>{suggestion}</p>
+                        <h4>{suggestion}</h4>
                     </div>
                 </div>
             )}
+
             <Chatbot />
         </div>
     );
